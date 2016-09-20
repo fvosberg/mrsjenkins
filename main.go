@@ -3,24 +3,28 @@ package main
 import (
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
-type Router struct {
-	Message string
+func NewRouter() http.Handler {
+	r := mux.NewRouter()
+	r.HandleFunc("/", HomeHandler)
+	return r
 }
 
-func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handled request on %s\n", r.URL.Path)
-	w.Write([]byte(router.Message))
+	w.Write([]byte("Hallo Welt"))
 }
 
 func main() {
-	router := &Router{Message: "Hello, World"}
+	r := NewRouter()
 
 	log.Println("Starting webserver listening on :8080")
 	s := &http.Server{
 		Addr:    ":8080",
-		Handler: router,
+		Handler: r,
 	}
 
 	log.Fatal(s.ListenAndServe())
