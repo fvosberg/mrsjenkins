@@ -50,3 +50,24 @@ func TestGetTodos(t *testing.T) {
 		t.Error("Status code of GET /todos is not 200 but", resp.StatusCode)
 	}
 }
+
+func TestPutTodos(t *testing.T) {
+	r := NewRouter()
+	s := httptest.NewServer(r)
+	defer s.Close()
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("PUT", s.URL+"/todos", nil)
+	if err != nil {
+		t.Error(err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if resp.StatusCode != 404 {
+		t.Error("Status code of GET /todos is not 404 but", resp.StatusCode)
+	}
+}

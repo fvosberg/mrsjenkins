@@ -9,8 +9,8 @@ import (
 
 func NewRouter() http.Handler {
 	r := mux.NewRouter()
-	r.HandleFunc("/", HomeHandler)
-	r.HandleFunc("/todos", CustomerHandler)
+	r.HandleFunc("/", HomeHandler).Methods("GET")
+	r.HandleFunc("/todos", CustomerHandler).Methods("GET")
 	return r
 }
 
