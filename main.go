@@ -10,12 +10,18 @@ import (
 func NewRouter() http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/", HomeHandler)
+	r.HandleFunc("/todos", CustomerHandler)
 	return r
 }
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handled request on %s\n", r.URL.Path)
 	w.Write([]byte("Hallo Welt"))
+}
+
+func CustomerHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Handled request on %s\n", r.URL.Path)
+	w.Write([]byte("Todos"))
 }
 
 func main() {

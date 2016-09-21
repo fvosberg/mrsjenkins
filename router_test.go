@@ -35,3 +35,18 @@ func Test404(t *testing.T) {
 		t.Error("Status code of /foobarNotFound is not 404")
 	}
 }
+
+func TestGetTodos(t *testing.T) {
+	r := NewRouter()
+	s := httptest.NewServer(r)
+	defer s.Close()
+
+	resp, err := http.Get(s.URL + "/todos")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Error("Status code of GET /todos is not 200 but", resp.StatusCode)
+	}
+}
