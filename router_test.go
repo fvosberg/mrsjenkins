@@ -7,8 +7,8 @@ import (
 )
 
 func TestRouter(t *testing.T) {
-	r := NewRouter()
-	s := httptest.NewServer(r)
+	app := NewApp()
+	s := httptest.NewServer(app)
 	defer s.Close()
 
 	resp, err := http.Get(s.URL)
@@ -22,8 +22,8 @@ func TestRouter(t *testing.T) {
 }
 
 func Test404(t *testing.T) {
-	r := NewRouter()
-	s := httptest.NewServer(r)
+	app := NewApp()
+	s := httptest.NewServer(app)
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "/foobarNotFound")
@@ -37,8 +37,8 @@ func Test404(t *testing.T) {
 }
 
 func TestGetTodos(t *testing.T) {
-	r := NewRouter()
-	s := httptest.NewServer(r)
+	app := NewApp()
+	s := httptest.NewServer(app)
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "/todos")
@@ -52,8 +52,13 @@ func TestGetTodos(t *testing.T) {
 }
 
 func TestPutTodos(t *testing.T) {
-	r := NewRouter()
-	s := httptest.NewServer(r)
+	app := NewAppWithTodoDatastore(
+		NewTodoElasticDatastore(
+			NewElasticsearchClient("http://192.168.99.100:9200"),
+		),
+	)
+
+	s := httptest.NewServer(app)
 	defer s.Close()
 
 	client := &http.Client{}
