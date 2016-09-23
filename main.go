@@ -112,15 +112,21 @@ type ValidationError struct {
 	Description string `json:"description"`
 }
 
+func todoFromRequest(r *http.Request) (Todo, error) {
+	var todo Todo
+	err := json.NewDecoder(r.Body).Decode(&todo)
+	return todo, err
+}
+
 func NewTodoCreateHandler(todoDatastore TodoDatastore) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Handled request with %s on %s\n", r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		var todo Todo
-		err := json.NewDecoder(r.Body).Decode(&todo)
+		todo, err := todoFromRequest(r)
 		if err == io.EOF {
 			log.Println("Empty registration request body")
-			// TODO send this error as JSON response - DAMN
+			w.Header().Set("X-Status-Reason", "Missing request body")
+			w.WriteHeader(400)
 		} else if err != nil {
 			log.Printf("Decoding todo create request failed - %+v - %+v\n", err, r)
 		} else {
@@ -131,8 +137,6 @@ func NewTodoCreateHandler(todoDatastore TodoDatastore) func(http.ResponseWriter,
 				w.WriteHeader(400)
 				var responseBody ValidationErrorResponse
 				for field, ves := range err.(validator.ErrorMap) {
-					// hieraus muessen wir errorcodes etc erzeugen
-					// was machen wir, wenn wir noch keinen Errorcode haben?
 					for _, ve := range ves {
 						switch {
 						default:

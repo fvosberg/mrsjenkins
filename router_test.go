@@ -61,6 +61,12 @@ func (f *fakeTodoDatastore) Create(t *Todo) {
 	f.calledCreateCount++
 }
 
+func (f *fakeTodoDatastore) assertCreateCalled(t *testing.T, expected int) {
+	if f.calledCreateCount != expected {
+		t.Error("TodoDatastore.Create should be called", expected, "times, but has been called", f.calledCreateCount)
+	}
+}
+
 func newFakeTodoDatastore() *fakeTodoDatastore {
 	return &fakeTodoDatastore{}
 }
@@ -81,15 +87,15 @@ func TestPutTodos(t *testing.T) {
 	}
 
 	assertStatusCode(t, 200, resp.StatusCode, "PUT /todos")
-	if datastore.calledCreateCount != 1 {
-		t.Error("TodoDatastore.Create should be called", 1, "times, but has been called", datastore.calledCreateCount)
-	}
+	datastore.assertCreateCalled(t, 1)
 }
 
 func requestTodo(method string, URL string, todo Todo) (*http.Response, error) {
-	// TODO refactor json generation
-	jsonprep := `{"title":"` + todo.Title + `","description":"` + todo.Description + `"}`
-	jsonStr := []byte(jsonprep)
+	json, err := json.Marshal(todo)
+	if err != nil {
+		return nil, err
+	}
+	jsonStr := []byte(json)
 	req, err := http.NewRequest(method, URL, bytes.NewBuffer(jsonStr))
 	if err != nil {
 		return nil, err
@@ -110,11 +116,10 @@ func TestPutTodosWithoutTitle(t *testing.T) {
 		t.Error(err)
 	}
 	assertStatusCode(t, 400, resp.StatusCode, "PUT /todos with invalid todo")
-	if datastore.calledCreateCount != 0 {
-		t.Error("TodoDatastore.Create should be called", 0, "times, but has been called", datastore.calledCreateCount)
-	}
-	assertHeader(t, resp, "Content-Type", "application/json; charset=utf-8")
 	assertHeader(t, resp, "X-Status-Reason", "Validation failed; See body for reasons")
+
+	datastore.assertCreateCalled(t, 0)
+	assertHeader(t, resp, "Content-Type", "application/json; charset=utf-8")
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Error(err)
@@ -132,13 +137,29 @@ func TestPutTodosWithoutTitle(t *testing.T) {
 	}
 }
 
+func TestPutTodosWithoutTodoBody(t *testing.T) {
+	app, datastore := newAppWithFakeTodoDatastore()
+
+	s := httptest.NewServer(app)
+	defer s.Close()
+
+	req, err := http.NewRequest("PUT", s.URL+"/todos", nil)
+	if err != nil {
+		t.Error(err)
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	datastore.assertCreateCalled(t, 0)
+	assertStatusCode(t, 400, resp.StatusCode, "PUT /todos without todo body")
+	assertHeader(t, resp, "X-Status-Reason", "Missing request body")
+}
+
 func assertHeader(t *testing.T, resp *http.Response, header string, expected string) {
 	if resp.Header.Get(header) != expected {
 		t.Error("The", header, "header should be", expected, "but is:", resp.Header.Get(header))
 	}
 }
-
-// TODO func TestPutTodosWithoutRequestBody(t *testing.T) {
 
 func assertStatusCode(t *testing.T, expected int, actual int, path string) {
 	if expected != actual {
