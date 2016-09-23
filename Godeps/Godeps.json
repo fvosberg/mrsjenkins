@@ -1,0 +1,31 @@
+{
+	"ImportPath": "github.com/fvosberg/mrsjenkins",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Comment": "v1.1-20-g7804150",
+			"Rev": "780415097119f6f61c55475fe59b66f3c3e9ea53"
+		},
+		{
+			"ImportPath": "gopkg.in/olivere/elastic.v3",
+			"Comment": "v3.0.45",
+			"Rev": "787ebbb5a7600662bca364e4e8ca959f315e442f"
+		},
+		{
+			"ImportPath": "gopkg.in/olivere/elastic.v3/backoff",
+			"Comment": "v3.0.45",
+			"Rev": "787ebbb5a7600662bca364e4e8ca959f315e442f"
+		},
+		{
+			"ImportPath": "gopkg.in/olivere/elastic.v3/uritemplates",
+			"Comment": "v3.0.45",
+			"Rev": "787ebbb5a7600662bca364e4e8ca959f315e442f"
+		},
+		{
+			"ImportPath": "gopkg.in/validator.v2",
+			"Rev": "0a9835d809fb647a62611d30cb792e0b5dd65b11"
+		}
+	]
+}
