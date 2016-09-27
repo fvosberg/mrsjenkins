@@ -5,21 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/fvosberg/mrsjenkins/todo"
 )
-
-func TestMain(m *testing.M) {
-	logrus.SetOutput(ioutil.Discard)
-	// logrus.SetLevel(logrus.DebugLevel)
-	// logrus.Debugf("HALLO %+v\n", m)
-	retCode := m.Run()
-	//myTeardownFunction()
-	os.Exit(retCode)
-}
 
 func TestPutTodos(t *testing.T) {
 	app, datastore := newAppWithFakeTodoDatastore()
@@ -31,7 +20,7 @@ func TestPutTodos(t *testing.T) {
 		t.Error(err)
 	}
 
-	assertStatusCode(t, 200, resp.StatusCode, "PUT /todos")
+	assertStatusCode(t, 201, resp.StatusCode, "PUT /todos")
 	datastore.assertCreateCalled(t, 1)
 }
 

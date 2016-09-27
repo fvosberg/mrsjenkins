@@ -10,7 +10,7 @@ docker-image:
 	echo "Start by entering docker run -it --rm --name mrsjenkins mrsjenkins"
 
 test:
-	go test
+	go test -v
 
 test-covarage:
 	go test -cover

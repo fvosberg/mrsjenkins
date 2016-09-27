@@ -36,10 +36,19 @@ func (c *createHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logrus.Printf("Decoding todo create request successful - %+v\n", todo)
 		if err := validator.Validate(todo); err != nil {
 			logrus.Printf("Validation errors for todo - %+v - %+v\n", todo, err)
-			writeValidationErrorResponse(w, err)
+			w.Header().Set("X-Status-Reason", "Validation failed; See body for reasons")
+			w.WriteHeader(400)
+			responseBody := validationErrorResponse(w, err)
+			jsonBody, err := json.Marshal(responseBody)
+			if err != nil {
+				// should this end up in another response? 500?
+				logrus.Printf("Error while marshalling todos validation error response to json. - %+v - %+v\n", err, responseBody)
+			}
+			w.Write(jsonBody)
 		} else {
 			logrus.Printf("Created todo successfully - %+v\n", todo)
 			c.datastore.Create(&todo)
+			w.WriteHeader(201)
 			w.Write([]byte("Todo Created"))
 		}
 	}
@@ -49,24 +58,19 @@ func NewCreateHandler(datastore Datastore) *createHandler {
 	return &createHandler{datastore: datastore}
 }
 
-func writeValidationErrorResponse(w http.ResponseWriter, err error) {
-	w.Header().Set("X-Status-Reason", "Validation failed; See body for reasons")
-	w.WriteHeader(400)
-	var responseBody ValidationErrorResponse
+func validationErrorResponse(w http.ResponseWriter, err error) ValidationErrorResponse {
+	var response ValidationErrorResponse
 	for field, ves := range err.(validator.ErrorMap) {
 		for _, ve := range ves {
 			switch {
 			default:
+				// TODO should this return an error?
 				logrus.Printf("TODO LOG STATUS CRITICAL: There is no error code definition for this validation error combination: %s, %s", field, ve)
 			case field == "Title" && ve == validator.ErrZeroValue:
 				validationError := ValidationError{Code: 1474574120, Description: "The field Title is required"}
-				responseBody.Errors = append(responseBody.Errors, validationError)
+				response.Errors = append(response.Errors, validationError)
 			}
 		}
 	}
-	jsonBody, err := json.Marshal(responseBody)
-	if err != nil {
-		logrus.Printf("Error while marshalling todos validation error response to json. - %+v - %+v\n", err, responseBody)
-	}
-	w.Write(jsonBody)
+	return response
 }
