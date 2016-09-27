@@ -2,6 +2,7 @@ package todo
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -32,13 +33,20 @@ func (c *createHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 	} else if err != nil {
 		logrus.Printf("Decoding todo create request failed - %+v - %+v\n", err, r)
+		w.Header().Set("X-Status-Reason", "Malformed json request body")
+		w.WriteHeader(500)
 	} else {
 		logrus.Printf("Decoding todo create request successful - %+v\n", todo)
 		if err := validator.Validate(todo); err != nil {
 			logrus.Printf("Validation errors for todo - %+v - %+v\n", todo, err)
+			responseBody, err := validationErrorResponse(w, err)
+			if err != nil {
+				logrus.Errorf("Todo: %+v - Error: %+v\n", todo, err)
+				w.Header().Set("X-Status-Reason", "Validation failed with an unsupported combination of field and validation error. Please contact the admin.")
+				w.WriteHeader(500)
+			}
 			w.Header().Set("X-Status-Reason", "Validation failed; See body for reasons")
 			w.WriteHeader(400)
-			responseBody := validationErrorResponse(w, err)
 			jsonBody, err := json.Marshal(responseBody)
 			if err != nil {
 				// should this end up in another response? 500?
@@ -58,19 +66,18 @@ func NewCreateHandler(datastore Datastore) *createHandler {
 	return &createHandler{datastore: datastore}
 }
 
-func validationErrorResponse(w http.ResponseWriter, err error) ValidationErrorResponse {
+func validationErrorResponse(w http.ResponseWriter, err error) (ValidationErrorResponse, error) {
 	var response ValidationErrorResponse
 	for field, ves := range err.(validator.ErrorMap) {
 		for _, ve := range ves {
 			switch {
 			default:
-				// TODO should this return an error?
-				logrus.Printf("TODO LOG STATUS CRITICAL: There is no error code definition for this validation error combination: %s, %s", field, ve)
+				return response, errors.New("Invalid validation error. Field: %s, Error: %s - Please contact your administrator")
 			case field == "Title" && ve == validator.ErrZeroValue:
 				validationError := ValidationError{Code: 1474574120, Description: "The field Title is required"}
 				response.Errors = append(response.Errors, validationError)
 			}
 		}
 	}
-	return response
+	return response, nil
 }

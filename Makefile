@@ -12,7 +12,7 @@ docker-image:
 test:
 	go test -v
 
-test-covarage:
+test-coverage:
 	go test -cover
 
 test-coverage-profile:

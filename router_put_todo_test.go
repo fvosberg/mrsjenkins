@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -72,4 +73,22 @@ func TestPutTodosWithoutTodoBody(t *testing.T) {
 	datastore.assertCreateCalled(t, 0)
 	assertStatusCode(t, 400, resp.StatusCode, "PUT /todos without todo body")
 	assertHeader(t, resp, "X-Status-Reason", "Missing request body")
+}
+
+func TestPutTodosWithMalformedJsonBody(t *testing.T) {
+	app, datastore := newAppWithFakeTodoDatastore()
+
+	s := httptest.NewServer(app)
+	defer s.Close()
+
+	req, err := http.NewRequest("PUT", s.URL+"/todos", bytes.NewBuffer([]byte("{\"foo\": \"bar\"")))
+	if err != nil {
+		t.Error(err)
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	datastore.assertCreateCalled(t, 0)
+	assertStatusCode(t, 500, resp.StatusCode, "PUT /todos")
+	assertHeader(t, resp, "X-Status-Reason", "Malformed json request body")
 }

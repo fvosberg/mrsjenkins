@@ -8,13 +8,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/fvosberg/mrsjenkins/todo"
 )
 
@@ -57,7 +55,7 @@ func requestTodo(method string, URL string, todo todo.Todo) (*http.Response, err
 }
 
 func TestMain(m *testing.M) {
-	logrus.SetOutput(ioutil.Discard)
+	//logrus.SetOutput(ioutil.Discard)
 	// logrus.SetLevel(logrus.DebugLevel)
 	// logrus.Debugf("HALLO %+v\n", m)
 	retCode := m.Run()
