@@ -9,32 +9,32 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type app struct {
+// The App struct holds the todoDatastore and the multiplexer
+type App struct {
 	todoDatastore todo.Datastore
 	mux           http.Handler
 }
 
-func (a *app) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// NewRouter and Subrouter return Router which implements http.handler
 	a.mux.ServeHTTP(w, r)
 }
 
-func NewApp() *app {
-	return NewAppWithTodoDatastore(todo.NewElasticDatastore())
-}
-
-func NewAppWithTodoDatastore(todoDatastore todo.Datastore) *app {
+// NewApp creates a new App object
+func NewApp() *App {
 	r := mux.NewRouter()
-	r.HandleFunc("/", HomeHandler).Methods("GET")
-	r.Handle("/todos", todo.NewCreateHandler(todoDatastore)).Methods("PUT")
+	r.HandleFunc("/", homeHandler).Methods("GET")
+	r.NewRoute().PathPrefix("/todos").Handler(
+		http.StripPrefix("/todos", todo.NewRouter()),
+	)
 
-	app := &app{
-		todoDatastore: todoDatastore,
-		mux:           r,
+	app := &App{
+		mux: r,
 	}
 	return app
 }
 
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
+func homeHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handled request on %s\n", r.URL.Path)
 	w.Write([]byte("Hallo Welt"))
 }

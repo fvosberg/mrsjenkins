@@ -1,13 +1,10 @@
 package main
 
-// TODO disable logging on running tests
 // Purpose of this testfile
 // Test the correct linking of the app router with the todo router
-// So a test per route should be fine
+// Test the correct 404s
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -30,28 +27,16 @@ func (f *fakeTodoDatastore) assertCreateCalled(t *testing.T, expected int) {
 	}
 }
 
-func newFakeTodoDatastore() *fakeTodoDatastore {
-	return &fakeTodoDatastore{}
+func assertStatusCode(t *testing.T, expected int, actual int, path string) {
+	if expected != actual {
+		t.Error("Status code of ", path, " is not ", expected, " but", actual)
+	}
 }
 
-func newAppWithFakeTodoDatastore() (*app, *fakeTodoDatastore) {
-	fakeTodoDatastore := newFakeTodoDatastore()
-	return NewAppWithTodoDatastore(fakeTodoDatastore), fakeTodoDatastore
-}
-
-func requestTodo(method string, URL string, todo todo.Todo) (*http.Response, error) {
-	json, err := json.Marshal(todo)
-	if err != nil {
-		return nil, err
+func assertStatusCodeNot(t *testing.T, expected int, actual int, path string) {
+	if expected == actual {
+		t.Error("Status code of ", path, " should not be ", actual)
 	}
-	jsonStr := []byte(json)
-	req, err := http.NewRequest(method, URL, bytes.NewBuffer(jsonStr))
-	if err != nil {
-		return nil, err
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	return resp, err
 }
 
 func TestMain(m *testing.M) {
@@ -64,8 +49,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestRouter(t *testing.T) {
-	fakeTodoDatastore := newFakeTodoDatastore()
-	app := NewAppWithTodoDatastore(fakeTodoDatastore)
+	app := NewApp()
+
 	s := httptest.NewServer(app)
 	defer s.Close()
 
@@ -74,48 +59,73 @@ func TestRouter(t *testing.T) {
 		t.Error(err)
 	}
 
-	if resp.StatusCode != 200 {
-		t.Error("Status code of / is not 200")
-	}
+	assertStatusCode(t, 200, resp.StatusCode, "GET /")
 }
 
 func Test404(t *testing.T) {
-	fakeTodoDatastore := newFakeTodoDatastore()
-	app := NewAppWithTodoDatastore(fakeTodoDatastore)
+	app := NewApp()
 	s := httptest.NewServer(app)
 	defer s.Close()
 
-	resp, err := http.Get(s.URL + "/foobarNotFound")
+	resp, err := http.Get(s.URL + "/notExistingRoute")
 	if err != nil {
 		t.Error(err)
 	}
 
-	assertStatusCode(t, 404, resp.StatusCode, "GET /foobarNotFound")
+	assertStatusCode(t, 404, resp.StatusCode, "GET /notExistingRoute")
 }
 
-func TestGetTodos(t *testing.T) {
-	return
-	fakeTodoDatastore := newFakeTodoDatastore()
-	app := NewAppWithTodoDatastore(fakeTodoDatastore)
+func TestSub404(t *testing.T) {
+	app := NewApp()
 	s := httptest.NewServer(app)
 	defer s.Close()
 
-	resp, err := http.Get(s.URL + "/todos")
+	resp, err := http.Get(s.URL + "/todos/notExistingRoute")
 	if err != nil {
 		t.Error(err)
 	}
 
-	assertStatusCode(t, 200, resp.StatusCode, "GET /todos")
+	assertStatusCode(t, 404, resp.StatusCode, "GET /todos/notExistingRoute")
 }
 
-func assertHeader(t *testing.T, resp *http.Response, header string, expected string) {
-	if resp.Header.Get(header) != expected {
-		t.Error("The", header, "header should be", expected, "but is:", resp.Header.Get(header))
+func TestTodoRouting(t *testing.T) {
+	for _, r := range todo.Routes {
+		assertRouteExists(t, r)
 	}
+
+	notExistingMethodRoute := todo.Route{"/", "NOTEXISTINGMETHOD", func(w http.ResponseWriter, r *http.Request) {}}
+	assertRouteDoesntExist(t, notExistingMethodRoute)
 }
 
-func assertStatusCode(t *testing.T, expected int, actual int, path string) {
-	if expected != actual {
-		t.Error("Status code of ", path, " is not ", expected, " but", actual)
+func assertRouteExists(t *testing.T, route todo.Route) {
+	resp, err := requestRoute(route)
+	if err != nil {
+		t.Error(err)
 	}
+
+	routeS := route.Method + " /todos" + route.URL
+	assertStatusCodeNot(t, 404, resp.StatusCode, routeS)
+}
+
+func assertRouteDoesntExist(t *testing.T, route todo.Route) {
+	resp, err := requestRoute(route)
+	if err != nil {
+		t.Error(err)
+	}
+
+	routeS := route.Method + " /todos" + route.URL
+	assertStatusCode(t, 404, resp.StatusCode, routeS)
+}
+
+func requestRoute(route todo.Route) (*http.Response, error) {
+	s := httptest.NewServer(NewApp())
+	defer s.Close()
+
+	req, err := http.NewRequest(route.Method, s.URL+"/todos"+route.URL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	return client.Do(req)
 }
