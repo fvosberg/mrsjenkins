@@ -13,20 +13,6 @@ import (
 	"github.com/fvosberg/mrsjenkins/todo"
 )
 
-type fakeTodoDatastore struct {
-	calledCreateCount int
-}
-
-func (f *fakeTodoDatastore) Create(t *todo.Todo) {
-	f.calledCreateCount++
-}
-
-func (f *fakeTodoDatastore) assertCreateCalled(t *testing.T, expected int) {
-	if f.calledCreateCount != expected {
-		t.Error("TodoDatastore.Create should be called", expected, "times, but has been called", f.calledCreateCount)
-	}
-}
-
 func assertStatusCode(t *testing.T, expected int, actual int, path string) {
 	if expected != actual {
 		t.Error("Status code of ", path, " is not ", expected, " but", actual)
@@ -93,7 +79,7 @@ func TestTodoRouting(t *testing.T) {
 		assertRouteExists(t, r)
 	}
 
-	notExistingMethodRoute := todo.Route{"/", "NOTEXISTINGMETHOD", func(w http.ResponseWriter, r *http.Request) {}}
+	notExistingMethodRoute := todo.Route{"/", "NOTEXISTINGMETHOD", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})}
 	assertRouteDoesntExist(t, notExistingMethodRoute)
 }
 

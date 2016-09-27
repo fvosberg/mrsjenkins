@@ -9,9 +9,9 @@ import (
 )
 
 type Route struct {
-	URL        string
-	Method     string
-	HandleFunc http.HandlerFunc
+	URL     string
+	Method  string
+	Handler http.Handler
 }
 
 func (r *Route) String() string {
@@ -26,8 +26,8 @@ func (r *Route) String() string {
 
 var (
 	Routes = []Route{
-		{"/", "GET", listHandle},
-		{"/", "PUT", createHandle},
+		{"/", "GET", http.HandlerFunc(listHandle)},
+		{"/", "PUT", http.HandlerFunc(createHandle)},
 	}
 )
 
@@ -35,7 +35,7 @@ func NewRouter() http.Handler {
 	r := mux.NewRouter()
 	r.StrictSlash(false)
 	for _, route := range Routes {
-		r.HandleFunc(route.URL, route.HandleFunc).Methods(route.Method)
+		r.Handle(route.URL, route.Handler).Methods(route.Method)
 	}
 	return r
 }
