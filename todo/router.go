@@ -27,10 +27,12 @@ func (r *Route) String() string {
 var (
 	Routes = []Route{
 		{"/", "GET", http.HandlerFunc(listHandle)},
-		{"/", "PUT", http.HandlerFunc(createHandle)},
+		{"/", "PUT", NewCreateHandler(&SessionDatastore{})},
 	}
 )
 
+// NewRouter returns a new router for the todo service
+// this router routes on / level, so you have to remove the prefix if it is used embedded
 func NewRouter() http.Handler {
 	r := mux.NewRouter()
 	r.StrictSlash(false)
@@ -42,8 +44,4 @@ func NewRouter() http.Handler {
 
 func listHandle(w http.ResponseWriter, r *http.Request) {
 	logrus.Print("List handler")
-}
-
-func createHandle(w http.ResponseWriter, r *http.Request) {
-	logrus.Print("Create handler")
 }

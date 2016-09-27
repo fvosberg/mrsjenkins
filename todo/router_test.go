@@ -17,7 +17,7 @@ func TestRoutes(t *testing.T) {
 		assertRouteExists(t, r)
 	}
 
-	notExistingMethodRoute := Route{"/", "NOTEXISTINGMETHOD", func(w http.ResponseWriter, r *http.Request) {}}
+	notExistingMethodRoute := Route{"/", "NOTEXISTINGMETHOD", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})}
 	assertRouteDoesntExist(t, notExistingMethodRoute)
 }
 

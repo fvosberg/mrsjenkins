@@ -33,7 +33,7 @@ func (c *createHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 	} else if err != nil {
 		logrus.Printf("Decoding todo create request failed - %+v - %+v\n", err, r)
-		w.Header().Set("X-Status-Reason", "Malformed json request body")
+		w.Header().Set("X-Status-Reason", "Malformed JSON request body")
 		w.WriteHeader(500)
 	} else {
 		logrus.Printf("Decoding todo create request successful - %+v\n", todo)
