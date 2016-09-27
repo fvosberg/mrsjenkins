@@ -39,7 +39,7 @@ func (c *createHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logrus.Printf("Decoding todo create request successful - %+v\n", todo)
 		if err := validator.Validate(todo); err != nil {
 			logrus.Printf("Validation errors for todo - %+v - %+v\n", todo, err)
-			responseBody, err := validationErrorResponse(w, err)
+			validationResponse, err := validationErrorResponse(w, err)
 			if err != nil {
 				logrus.Errorf("Todo: %+v - Error: %+v\n", todo, err)
 				w.Header().Set("X-Status-Reason", "Validation failed with an unsupported combination of field and validation error. Please contact the admin.")
@@ -47,10 +47,10 @@ func (c *createHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			w.Header().Set("X-Status-Reason", "Validation failed; See body for reasons")
 			w.WriteHeader(400)
-			jsonBody, err := json.Marshal(responseBody)
+			jsonBody, err := json.Marshal(validationResponse)
 			if err != nil {
 				// should this end up in another response? 500?
-				logrus.Printf("Error while marshalling todos validation error response to json. - %+v - %+v\n", err, responseBody)
+				logrus.Printf("Error while marshalling todos validation error response to json. - %+v - %+v\n", err, validationResponse)
 			}
 			w.Write(jsonBody)
 		} else {
