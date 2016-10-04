@@ -27,7 +27,7 @@ func (r *Route) String() string {
 var (
 	Routes = []Route{
 		{"/", "GET", http.HandlerFunc(listHandle)},
-		{"/", "PUT", NewCreateHandler(&SessionDatastore{})},
+		{"/", "POST", NewCreateHandler(&SessionDatastore{})},
 	}
 )
 

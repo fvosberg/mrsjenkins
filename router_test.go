@@ -10,6 +10,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/fvosberg/mrsjenkins/todo"
 )
 
@@ -27,91 +28,65 @@ func assertStatusCodeNot(t *testing.T, expected int, actual int, path string) {
 
 func TestMain(m *testing.M) {
 	//logrus.SetOutput(ioutil.Discard)
-	// logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 	// logrus.Debugf("HALLO %+v\n", m)
 	retCode := m.Run()
 	//myTeardownFunction()
 	os.Exit(retCode)
 }
 
+const TodoRoutingPrefix = "/todos"
+
 func TestRouter(t *testing.T) {
-	app := NewApp()
-
-	s := httptest.NewServer(app)
-	defer s.Close()
-
-	resp, err := http.Get(s.URL)
-	if err != nil {
-		t.Error(err)
+	cases := map[string]struct {
+		Method             string
+		URL                string
+		ExpectedStatusCode int
+	}{
+		"Root":   {"GET", "/", 200},
+		"404":    {"GET", "/notExistingRoute", 404},
+		"Sub404": {"GET", TodoRoutingPrefix + "/notExistingRoute", 404},
 	}
 
-	assertStatusCode(t, 200, resp.StatusCode, "GET /")
-}
-
-func Test404(t *testing.T) {
-	app := NewApp()
-	s := httptest.NewServer(app)
-	defer s.Close()
-
-	resp, err := http.Get(s.URL + "/notExistingRoute")
-	if err != nil {
-		t.Error(err)
+	for k, tc := range cases {
+		resp := getResponse(t, tc.Method, tc.URL)
+		if resp.StatusCode != tc.ExpectedStatusCode {
+			t.Error("Failed", k, "- Status code of", tc.Method, tc.URL, "is not", tc.ExpectedStatusCode, "but", resp.StatusCode)
+		}
 	}
-
-	assertStatusCode(t, 404, resp.StatusCode, "GET /notExistingRoute")
 }
 
-func TestSub404(t *testing.T) {
-	app := NewApp()
-	s := httptest.NewServer(app)
-	defer s.Close()
-
-	resp, err := http.Get(s.URL + "/todos/notExistingRoute")
-	if err != nil {
-		t.Error(err)
-	}
-
-	assertStatusCode(t, 404, resp.StatusCode, "GET /todos/notExistingRoute")
-}
-
-func TestTodoRouting(t *testing.T) {
+func TestTodoRoutes(t *testing.T) {
 	for _, r := range todo.Routes {
-		assertRouteExists(t, r)
+		URL := TodoRoutingPrefix + r.URL
+		resp := getResponse(t, r.Method, URL)
+		if resp.StatusCode == 404 {
+			t.Error("Failed - Status code of", r.Method, URL, "is not SUCCESS but", resp.StatusCode)
+		}
 	}
 
-	notExistingMethodRoute := todo.Route{"/", "NOTEXISTINGMETHOD", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})}
-	assertRouteDoesntExist(t, notExistingMethodRoute)
-}
-
-func assertRouteExists(t *testing.T, route todo.Route) {
-	resp, err := requestRoute(route)
-	if err != nil {
-		t.Error(err)
+	resp := getResponse(t, "NOTEXISTINGMETHOD", TodoRoutingPrefix+"/")
+	if resp.StatusCode != 404 {
+		t.Error("Failed - Status code of the root rout with a non existing HTTP method is not 404, but", resp.StatusCode)
 	}
-
-	routeS := route.Method + " /todos" + route.URL
-	assertStatusCodeNot(t, 404, resp.StatusCode, routeS)
 }
 
-func assertRouteDoesntExist(t *testing.T, route todo.Route) {
-	resp, err := requestRoute(route)
-	if err != nil {
-		t.Error(err)
-	}
+func getResponse(t *testing.T, method string, URL string) *http.Response {
+	app := NewApp()
 
-	routeS := route.Method + " /todos" + route.URL
-	assertStatusCode(t, 404, resp.StatusCode, routeS)
-}
-
-func requestRoute(route todo.Route) (*http.Response, error) {
-	s := httptest.NewServer(NewApp())
+	s := httptest.NewServer(app)
 	defer s.Close()
 
-	req, err := http.NewRequest(route.Method, s.URL+"/todos"+route.URL, nil)
+	req, err := http.NewRequest(method, s.URL+URL, nil)
 	if err != nil {
-		return nil, err
+		t.Error(err)
 	}
 
 	client := &http.Client{}
-	return client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	return resp
 }
